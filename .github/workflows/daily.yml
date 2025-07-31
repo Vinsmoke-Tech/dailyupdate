@@ -59,8 +59,8 @@ jobs:
 
     - name: 🛠 Setup Git config
       run: |
-        git config --global user.name "sayyidazizii"
-        git config --global user.email "sayyidsyafiq234@gmail.com"
+        git config --global user.name "Vinsmoke-Tech"
+        git config --global user.email "daffahanaris@gmail.com"
 
     - name: 🔑 Authenticate GitHub CLI
       run: |

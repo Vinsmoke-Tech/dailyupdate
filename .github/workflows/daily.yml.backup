@@ -1,0 +1,117 @@
+name: Smart Daily Commits (8-15/day)
+
+on:
+  schedule:
+     # Jalankan setiap jam dari 06:00-23:00 WIB (23:00-16:00 UTC)
+     # Target: 8-15 commits per hari dengan smart frequency control
+     - cron: '0 23 * * *'    # 06:00 WIB
+     - cron: '30 0 * * *'    # 07:30 WIB  
+     - cron: '15 1 * * *'    # 08:15 WIB
+     - cron: '45 2 * * *'    # 09:45 WIB
+     - cron: '20 3 * * *'    # 10:20 WIB
+     - cron: '0 4 * * *'     # 11:00 WIB
+     - cron: '40 4 * * *'    # 11:40 WIB
+     - cron: '10 5 * * *'    # 12:10 WIB
+     - cron: '50 5 * * *'    # 12:50 WIB
+     - cron: '25 6 * * *'    # 13:25 WIB
+     - cron: '0 7 * * *'     # 14:00 WIB
+     - cron: '35 7 * * *'    # 14:35 WIB
+     - cron: '15 8 * * *'    # 15:15 WIB
+     - cron: '45 8 * * *'    # 15:45 WIB
+     - cron: '20 9 * * *'    # 16:20 WIB
+     - cron: '0 10 * * *'    # 17:00 WIB
+     - cron: '40 10 * * *'   # 17:40 WIB
+     - cron: '10 11 * * *'   # 18:10 WIB
+     - cron: '30 11 * * *'   # 18:30 WIB
+     - cron: '55 11 * * *'   # 18:55 WIB
+     - cron: '25 12 * * *'   # 19:25 WIB
+     - cron: '0 13 * * *'    # 20:00 WIB
+     - cron: '35 13 * * *'   # 20:35 WIB
+     - cron: '0 14 * * *'    # 21:00 WIB
+     - cron: '30 14 * * *'   # 21:30 WIB
+     - cron: '15 15 * * *'   # 22:15 WIB
+     - cron: '45 15 * * *'   # 22:45 WIB
+     - cron: '0 16 * * *'    # 23:00 WIB
+  workflow_dispatch: # Manual trigger tetap tersedia
+
+jobs:
+  smart-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run smart update script
+      run: |
+        echo "🚀 Starting smart daily commit bot..."
+        echo "📅 Current time: $(date)"
+        echo "🔄 Running bot logic..."
+        node bot.js
+        echo "✅ Bot execution completed"
+
+    - name: Check for changes and commit
+      run: |
+        git config --global user.name "iam-rizz"
+        git config --global user.email "rizky@mct.co.id"
+        
+        echo "🔍 Checking for repository changes..."
+        
+        # Check if there are any changes
+        if git diff --quiet && git diff --staged --quiet; then
+          echo "📝 No changes detected, skipping commit"
+          echo "⏭️  Bot decided not to commit this time (smart frequency control)"
+        else
+          echo "📦 Changes detected, proceeding with commit..."
+          git add .
+          
+          # Check if commit was already made by bot
+          if git diff --staged --quiet; then
+            echo "✅ Commit already handled by bot script"
+          else
+            echo "🔄 Additional changes found, committing..."
+            # Get random commit message from bot.js array
+            COMMIT_MSG=$(node -e "
+              const messages = [
+                '📝 Daily activity update',
+                '🔄 Regular maintenance commit',
+                '✨ Fresh daily changes', 
+                '🚀 Automated sync update',
+                '📊 Progress tracking update',
+                '🔧 System maintenance log',
+                '💫 Daily workflow commit',
+                '⚡ Quick status update',
+                '🌟 Regular check-in',
+                '🎯 Daily milestone update',
+                '🔥 Continuous improvement',
+                '💡 Daily insights update',
+                '🚧 Work in progress sync',
+                '📈 Performance tracking',
+                '🎨 Daily refinements',
+                '🛠️ Routine optimization',
+                '💪 Daily grind update',
+                '🌈 Creative progress sync',
+                '⭐ Excellence pursuit update',
+                '🏆 Achievement tracking'
+              ];
+              console.log(messages[Math.floor(Math.random() * messages.length)]);
+            ")
+            echo "📝 Using commit message: $COMMIT_MSG"
+            git commit -m "$COMMIT_MSG" || echo "No additional commit needed"
+          fi
+        fi
+
+    - name: Push changes (if any)
+      uses: ad-m/github-push-action@v0.8.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: main
+      if: success()

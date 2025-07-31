@@ -1,0 +1,74 @@
+name: Smart Daily Commits (8–15/day)
+
+on:
+  schedule:
+    # Eksekusi antara jam 06:00–23:00 WIB (UTC+7)
+    - cron: '0 23 * * *'    # 06:00 WIB
+    - cron: '30 0 * * *'    # 07:30 WIB
+    - cron: '15 1 * * *'    # 08:15 WIB
+    - cron: '45 2 * * *'    # 09:45 WIB
+    - cron: '20 3 * * *'    # 10:20 WIB
+    - cron: '0 4 * * *'     # 11:00 WIB
+    - cron: '40 4 * * *'    # 11:40 WIB
+    - cron: '10 5 * * *'    # 12:10 WIB
+    - cron: '50 5 * * *'    # 12:50 WIB
+    - cron: '25 6 * * *'    # 13:25 WIB
+    - cron: '0 7 * * *'     # 14:00 WIB
+    - cron: '35 7 * * *'    # 14:35 WIB
+    - cron: '15 8 * * *'    # 15:15 WIB
+    - cron: '45 8 * * *'    # 15:45 WIB
+    - cron: '20 9 * * *'    # 16:20 WIB
+    - cron: '0 10 * * *'    # 17:00 WIB
+    - cron: '40 10 * * *'   # 17:40 WIB
+    - cron: '10 11 * * *'   # 18:10 WIB
+    - cron: '30 11 * * *'   # 18:30 WIB
+    - cron: '55 11 * * *'   # 18:55 WIB
+    - cron: '25 12 * * *'   # 19:25 WIB
+    - cron: '0 13 * * *'    # 20:00 WIB
+    - cron: '35 13 * * *'   # 20:35 WIB
+    - cron: '0 14 * * *'    # 21:00 WIB
+    - cron: '30 14 * * *'   # 21:30 WIB
+    - cron: '15 15 * * *'   # 22:15 WIB
+    - cron: '45 15 * * *'   # 22:45 WIB
+    - cron: '0 16 * * *'    # 23:00 WIB
+  workflow_dispatch:
+
+jobs:
+  smart-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+
+    steps:
+    - name: ⬇️ Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: 📦 Install dependencies
+      run: npm install
+
+    - name: 🛠 Setup Git config
+      run: |
+        git config --global user.name "sayyidazizii"
+        git config --global user.email "sayyidsyafiq234@gmail.com"
+
+    - name: 🔑 Authenticate GitHub CLI
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+        gh auth setup-git
+        gh auth status
+
+    - name: 🚀 Run Smart Commit Bot
+      run: node bot.js
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}

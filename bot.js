@@ -47,7 +47,7 @@ function updateTracking2() {
     tracking2.count         += 1;
     tracking2.targetCommits += 1;
     tracking2.last_commit = new Date().toISOString();
-    fs.writeFileSync(TRACKING2_FILE, JSON.stringify(tracking, null, 3));
+    fs.writeFileSync(TRACKING2_FILE, JSON.stringify(tracking2, null, 3));
 }
 
 // Update daily log

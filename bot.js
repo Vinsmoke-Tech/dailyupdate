@@ -24,7 +24,8 @@ function initTracking() {
 // Update data tracking
 function updateTracking() {
     const tracking = JSON.parse(fs.readFileSync(TRACKING_FILE, 'utf-8'));
-    tracking.count += 1;
+    tracking.count         += 1;
+    tracking.targetCommits += 1;
     tracking.last_commit = new Date().toISOString();
     fs.writeFileSync(TRACKING_FILE, JSON.stringify(tracking, null, 2));
 }

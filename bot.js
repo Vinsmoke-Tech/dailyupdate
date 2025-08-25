@@ -142,5 +142,5 @@ async function bulkPullRequestsBatch(limit = 10) {
     await makeCommit();
     createPullRequest();
     mergeAndDeleteBranch();
-    await bulkPullRequestsBatch(10);
+    // await bulkPullRequestsBatch(10);
 })();

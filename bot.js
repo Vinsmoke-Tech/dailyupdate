@@ -86,16 +86,30 @@ function mergeAndDeleteBranch() {
     }
 }
 
-// Buat PR bulk untuk semua branch existing (kecuali BASE_BRANCH)
-async function bulkPullRequests() {
+// Buat PR batch: hanya 10 per run
+async function bulkPullRequestsBatch(limit = 10) {
     const branches = await git.branch(['-r']); // ambil remote branches
     const branchList = branches.all
         .map(b => b.replace('origin/', ''))
         .filter(b => b !== BASE_BRANCH && !b.startsWith('HEAD'));
 
-    console.log(`🔎 Ditemukan ${branchList.length} branch remote.`);
+    console.log(`🔎 Total branch ditemukan: ${branchList.length}`);
 
-    for (const branch of branchList) {
+    // Simpan state progress agar tahu batch terakhir
+    const STATE_FILE = 'bulk_pr_state.json';
+    let state = { index: 0 };
+
+    if (fs.existsSync(STATE_FILE)) {
+        state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+    }
+
+    const start = state.index;
+    const end = Math.min(start + limit, branchList.length);
+    const batch = branchList.slice(start, end);
+
+    console.log(`🚀 Membuat PR untuk branch ke-${start + 1} sampai ke-${end}`);
+
+    for (const branch of batch) {
         try {
             console.log(`➡️ Membuat PR untuk branch: ${branch}`);
             execSync(
@@ -106,7 +120,18 @@ async function bulkPullRequests() {
             console.log(`ℹ️ PR untuk ${branch} mungkin sudah ada atau gagal: ${err.message}`);
         }
     }
+
+    // Simpan progress
+    state.index = end;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+
+    if (end >= branchList.length) {
+        console.log("✅ Semua branch sudah diproses.");
+    } else {
+        console.log(`⏳ Batch selesai. Jalankan ulang script dalam 1 jam untuk lanjut batch berikutnya.`);
+    }
 }
+
 
 
 // Jalankan proses
@@ -117,5 +142,5 @@ async function bulkPullRequests() {
     await makeCommit();
     createPullRequest();
     mergeAndDeleteBranch();
-    await bulkPullRequests();
+    await bulkPullRequestsBatch(10);
 })();

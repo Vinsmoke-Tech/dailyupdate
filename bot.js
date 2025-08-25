@@ -7,6 +7,7 @@ const git = simpleGit();
 
 // Konfigurasi
 const TRACKING_FILE = 'commit_tracking.json';
+const TRACKING2_FILE = 'commit_2.json';
 const DAILY_FILE = 'daily_update.txt';
 const BRANCH_NAME = 'auto/daily-update';
 const BASE_BRANCH = 'main'; // branch target PR
@@ -21,13 +22,32 @@ function initTracking() {
     }
 }
 
+// Inisialisasi file tracking
+function initTracking2() {
+    if (!fs.existsSync(TRACKING2_FILE)) {
+        fs.writeFileSync(
+            TRACKING2_FILE,
+            JSON.stringify({ count: 0, targetCommits:0 ,last_commit: null }, null, 3)
+        );
+    }
+}
+
 // Update data tracking
 function updateTracking() {
     const tracking = JSON.parse(fs.readFileSync(TRACKING_FILE, 'utf-8'));
     tracking.count         += 1;
     tracking.targetCommits += 1;
     tracking.last_commit = new Date().toISOString();
-    fs.writeFileSync(TRACKING_FILE, JSON.stringify(tracking, null, 2));
+    fs.writeFileSync(TRACKING_FILE, JSON.stringify(tracking, null, 3));
+}
+
+// Update data tracking
+function updateTracking2() {
+    const tracking2 = JSON.parse(fs.readFileSync(TRACKING2_FILE, 'utf-8'));
+    tracking2.count         += 1;
+    tracking2.targetCommits += 1;
+    tracking2.last_commit = new Date().toISOString();
+    fs.writeFileSync(TRACKING2_FILE, JSON.stringify(tracking, null, 3));
 }
 
 // Update daily log
@@ -45,7 +65,7 @@ async function makeCommit() {
         await git.checkout(BRANCH_NAME);
     }
 
-    await git.add([TRACKING_FILE, DAILY_FILE]);
+    await git.add([TRACKING_FILE,TRACKING2_FILE, DAILY_FILE]);
     await git.commit(`Daily update & progress tracking - ${new Date().toISOString()}`);
     await git.push('origin', BRANCH_NAME, { '--force': null });
     console.log(`✅ Commit & push sukses ke branch ${BRANCH_NAME}`);
@@ -138,7 +158,9 @@ async function bulkPullRequestsBatch(limit = 10) {
 // Jalankan proses
 (async () => {
     initTracking();
+    initTracking2();
     updateTracking();
+    updateTracking2();
     updateDailyLog();
     await makeCommit();
     createPullRequest();

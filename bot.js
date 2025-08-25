@@ -86,6 +86,29 @@ function mergeAndDeleteBranch() {
     }
 }
 
+// Buat PR bulk untuk semua branch existing (kecuali BASE_BRANCH)
+async function bulkPullRequests() {
+    const branches = await git.branch(['-r']); // ambil remote branches
+    const branchList = branches.all
+        .map(b => b.replace('origin/', ''))
+        .filter(b => b !== BASE_BRANCH && !b.startsWith('HEAD'));
+
+    console.log(`🔎 Ditemukan ${branchList.length} branch remote.`);
+
+    for (const branch of branchList) {
+        try {
+            console.log(`➡️ Membuat PR untuk branch: ${branch}`);
+            execSync(
+                `gh pr create --base ${BASE_BRANCH} --head ${branch} --title "Auto PR: ${branch}" --body "Automated PR dari branch ${branch} ke ${BASE_BRANCH}"`,
+                { stdio: 'inherit' }
+            );
+        } catch (err) {
+            console.log(`ℹ️ PR untuk ${branch} mungkin sudah ada atau gagal: ${err.message}`);
+        }
+    }
+}
+
+
 // Jalankan proses
 (async () => {
     initTracking();
@@ -94,4 +117,5 @@ function mergeAndDeleteBranch() {
     await makeCommit();
     createPullRequest();
     mergeAndDeleteBranch();
+    await bulkPullRequests();
 })();

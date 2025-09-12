@@ -118,7 +118,8 @@ const titles = [
   "Quick Sync: Daily Updates",
   "Repo Activity Report",
   "Tracking Progress & Daily Notes",
-  "Development Activity Summary"
+  "Development Activity Summary",
+  "Fixing Function"
 ];
 
   const bodies = [

@@ -121,20 +121,26 @@ _Status: Generated automatically by bot_
 
   try {
     // buat issue
-    const result = execSync(
-      `gh issue create --title "${title}" --body "${body}" --json number`,
-      { encoding: "utf-8" }
-    );
-    const created = JSON.parse(result);
-    console.log(`✅ Issue #${created.number} berhasil dibuat`);
+    execSync(`gh issue create --title "${title}" --body "${body}"`, {
+      stdio: "inherit",
+    });
+    console.log(`✅ Issue berhasil dibuat`);
 
-    // langsung close
-    execSync(`gh issue close ${created.number}`, { stdio: "inherit" });
-    console.log(`🛑 Issue #${created.number} langsung ditutup`);
+    // ambil issue terakhir (open) dan langsung close
+    const latest = execSync(
+      `gh issue list --state open --limit 1 --json number --jq ".[0].number"`,
+      { encoding: "utf-8" }
+    ).trim();
+
+    if (latest) {
+      execSync(`gh issue close ${latest}`, { stdio: "inherit" });
+      console.log(`🛑 Issue #${latest} langsung ditutup`);
+    }
   } catch (err) {
     console.log("❌ Gagal membuat/menutup issue:", err.message);
   }
 }
+
 
 // ---------------- Main Runner ----------------
 (async () => {

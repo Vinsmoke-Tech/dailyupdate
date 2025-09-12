@@ -13,6 +13,50 @@ const BRANCH_NAME = "auto/daily-update";
 const BASE_BRANCH = "main"; // branch target PR
 // ============================================
 
+// ---------------- Variasi Commit Messages ----------------
+const commitMessages = [
+  "chore: daily progress update",
+  "docs: refresh daily log",
+  "refactor: routine update",
+  "update: tracking & daily note",
+  "fix: minor log adjustment",
+  "style: tidy up daily report",
+  "feat: add today’s progress entry",
+  "build: sync daily update",
+  "ci: automated daily commit",
+  "perf: optimize daily record update"
+];
+function getRandomCommitMessage() {
+  return commitMessages[Math.floor(Math.random() * commitMessages.length)];
+}
+
+// ---------------- Variasi Issue Titles ----------------
+const issueTitles = [
+  "Daily Progress Report",
+  "Routine Update Log",
+  "Automated Task Tracker",
+  "Bot Report: Daily Status",
+  "Update Summary",
+  "Daily Notes & Check-in",
+  "System Activity Log",
+  "Auto-generated Progress Record"
+];
+function getRandomIssueTitle() {
+  return issueTitles[Math.floor(Math.random() * issueTitles.length)];
+}
+
+// ---------------- Variasi Issue Bodies ----------------
+function getRandomIssueBody(count) {
+  const bodies = [
+    `📌 Routine log update\n\n- Entry number: ${count}\n- Generated at ${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}`,
+    `📝 Daily progress recorded\n\nCommit & update summary.\nIssue #${count}`,
+    `🤖 Automated check-in\n\nThis issue documents today’s activities.\nRef: ${count}`,
+    `📊 Status update\n\n- Issue count: ${count}\n- Time: ${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}`,
+    `✅ Bot created daily tracker\n\nLog ID: ${count}\nTime: ${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}`
+  ];
+  return bodies[Math.floor(Math.random() * bodies.length)];
+}
+
 // ---------------- Commit & PR ----------------
 function initTracking() {
   if (!fs.existsSync(TRACKING_FILE)) {
@@ -44,9 +88,7 @@ async function makeCommit() {
   }
 
   await git.add([TRACKING_FILE, DAILY_FILE]);
-  await git.commit(
-    `Daily update & progress tracking - ${new Date().toISOString()}`
-  );
+  await git.commit(getRandomCommitMessage());
   await git.push("origin", BRANCH_NAME, { "--force": null });
   console.log(`✅ Commit & push sukses ke branch ${BRANCH_NAME}`);
 }
@@ -74,9 +116,13 @@ function mergeAndDeleteBranch() {
       execSync(`gh pr merge --merge --delete-branch --auto`, {
         stdio: "inherit",
       });
-      console.log("✅ Auto-merge berhasil diaktifkan.");
+      console.log(
+        "✅ Auto-merge berhasil diaktifkan. PR akan merge setelah semua syarat terpenuhi."
+      );
     } catch (err2) {
-      console.log("❌ Gagal auto-merge. Cek branch protection.");
+      console.log(
+        "❌ Gagal mengaktifkan auto-merge. Periksa branch protection atau permissions."
+      );
     }
   }
 }
@@ -98,62 +144,59 @@ function updateIssueTracking() {
   fs.writeFileSync(ISSUE_TRACKING_FILE, JSON.stringify(tracking, null, 2));
 }
 
-function createAndCloseIssue() {
-  const issueTracking = JSON.parse(fs.readFileSync(ISSUE_TRACKING_FILE, "utf-8"));
-  const commitTracking = JSON.parse(fs.readFileSync(TRACKING_FILE, "utf-8"));
-
-  const title = `Auto Issue #${issueTracking.count + 1} - ${new Date()
-    .toISOString()
-    .split("T")[0]}`;
-
-  const body = `
-🤖 **Bot Auto Issue Report**
-
-- 📅 Waktu: ${new Date().toLocaleString("id-ID", {
-    timeZone: "Asia/Jakarta",
-  })}
-- 🔢 Issue ke-${issueTracking.count + 1}
-- 📊 Total commit: ${commitTracking.count}
-- ⏱️ Last commit: ${commitTracking.last_commit}
-
-_Status: Generated automatically by bot_
-`;
+function createIssue() {
+  const tracking = JSON.parse(fs.readFileSync(ISSUE_TRACKING_FILE, "utf-8"));
+  const title = getRandomIssueTitle();
+  const body = getRandomIssueBody(tracking.count + 1);
 
   try {
-    // buat issue
     execSync(`gh issue create --title "${title}" --body "${body}"`, {
       stdio: "inherit",
     });
-    console.log(`✅ Issue berhasil dibuat`);
-
-    // ambil issue terakhir (open) dan langsung close
-    const latest = execSync(
-      `gh issue list --state open --limit 1 --json number --jq ".[0].number"`,
-      { encoding: "utf-8" }
-    ).trim();
-
-    if (latest) {
-      execSync(`gh issue close ${latest}`, { stdio: "inherit" });
-      console.log(`🛑 Issue #${latest} langsung ditutup`);
-    }
+    console.log("✅ Issue berhasil dibuat");
   } catch (err) {
-    console.log("❌ Gagal membuat/menutup issue:", err.message);
+    console.log("❌ Gagal membuat issue:", err.message);
   }
 }
 
+// ---------------- Close Issue Bot ----------------
+function closeOldIssues(limit = 1) {
+  try {
+    const result = execSync(`gh issue list --state open --json number`, {
+      encoding: "utf-8",
+    });
+    const issues = JSON.parse(result);
+
+    if (issues.length === 0) {
+      console.log("ℹ️ Tidak ada issue open untuk ditutup.");
+      return;
+    }
+
+    const toClose = issues.slice(0, limit);
+    for (const issue of toClose) {
+      execSync(`gh issue close ${issue.number}`, { stdio: "inherit" });
+      console.log(`✅ Issue #${issue.number} berhasil ditutup`);
+    }
+  } catch (err) {
+    console.log("❌ Gagal menutup issue:", err.message);
+  }
+}
 
 // ---------------- Main Runner ----------------
 (async () => {
   // Commit & PR
-    initTracking();
-    updateTracking();
-    updateDailyLog();
-    await makeCommit();
-    createPullRequest();
-    mergeAndDeleteBranch();
+  initTracking();
+  updateTracking();
+  updateDailyLog();
+  await makeCommit();
+  createPullRequest();
+  mergeAndDeleteBranch();
 
-    // Auto Issue (buat + auto close)
-    initIssueTracking();
-    createAndCloseIssue();
-    updateIssueTracking();
+  // Auto Issue
+  initIssueTracking();
+  createIssue();
+  updateIssueTracking();
+
+  // Auto Close Issue (tutup 1 issue open tiap run)
+  closeOldIssues(1);
 })();

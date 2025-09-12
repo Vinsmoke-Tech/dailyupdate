@@ -94,12 +94,39 @@ async function makeCommit() {
 }
 
 function createPullRequest() {
+  const titles = [
+    "Daily Update & Progress Tracking",
+    "Routine Progress Sync",
+    "Automated Report & Commit Log",
+    "Task Update Summary",
+    "Codebase Health Check",
+    "Daily Workflow Log"
+  ];
+
+  const bodies = [
+    "Automated daily update & commit tracking.",
+    "Bot generated PR for daily progress logging.",
+    "Syncing latest commits with automated workflow.",
+    "Routine update to keep repo activity healthy.",
+    "Daily report with new commits pushed automatically.",
+    "System update: tracking commits & activities."
+  ];
+
+  const emojis = ["🚀", "📊", "🔥", "✅", "⚡", "📝", "🔄", "📌"];
+
+  // random pick
+  const randomTitle = titles[Math.floor(Math.random() * titles.length)];
+  const randomBody = bodies[Math.floor(Math.random() * bodies.length)];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+  const finalTitle = `${randomEmoji} ${randomTitle}`;
+
   try {
     execSync(
-      `gh pr create --base ${BASE_BRANCH} --head ${BRANCH_NAME} --title "Daily Update & Progress Tracking" --body "Automated daily update & commit tracking."`,
+      `gh pr create --base ${BASE_BRANCH} --head ${BRANCH_NAME} --title "${finalTitle}" --body "${randomBody}"`,
       { stdio: "inherit" }
     );
-    console.log("✅ PR berhasil dibuat");
+    console.log(`✅ PR berhasil dibuat: ${finalTitle}`);
   } catch (err) {
     console.log("ℹ️ PR mungkin sudah ada, atau GitHub CLI belum login.");
   }

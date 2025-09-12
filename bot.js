@@ -122,14 +122,60 @@ const titles = [
   "Fixing Function"
 ];
 
-  const bodies = [
-    "Automated daily update & commit tracking.",
-    "Bot generated PR for daily progress logging.",
-    "Syncing latest commits with automated workflow.",
-    "Routine update to keep repo activity healthy.",
-    "Daily report with new commits pushed automatically.",
-    "System update: tracking commits & activities."
-  ];
+    const bodies = [
+    `## 📊 Daily Progress Report
+    Halo team, ini update otomatis untuk hari ini:
+
+    - 🔄 Commit log sudah diperbarui
+    - 📝 Progress tracking tercatat
+    - 📅 Waktu eksekusi: ${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}
+
+    _Semua data di-generate otomatis oleh bot._`,
+
+    `## 🔔 Routine Update
+    PR ini dibuat secara otomatis untuk menjaga tracking harian.
+
+    Detail:
+    - Commit terbaru telah di-push
+    - File tracking & log diperbarui
+    - Branch \`${BRANCH_NAME}\` disinkronkan dengan \`${BASE_BRANCH}\`
+
+    Terima kasih 🙌`,
+
+    `## 📌 Automated Commit Log
+    Berikut ringkasan update otomatis:
+
+    1. Progress harian sudah tercatat
+    2. Commit & file log berhasil ditambahkan
+    3. Branch dilacak dan PR otomatis dibuat
+
+    _Ini membantu memastikan workflow tetap terdokumentasi._`,
+
+    `## 📒 Task Update Summary
+    Update otomatis oleh bot:
+    - 🔧 Tracking file diperbarui
+    - 📑 Catatan harian ditambahkan
+    - 🚀 PR dibuat untuk merge ke \`${BASE_BRANCH}\`
+
+    PR ini bisa langsung di-review & merge.`,
+
+    `## 🗂 Codebase Daily Log
+    Detail update otomatis:
+    - ✅ File log diperbarui
+    - 🔄 Branch \`${BRANCH_NAME}\` di-sync
+    - 🕒 Timestamp update: ${new Date().toISOString()}
+
+    Semua berjalan lancar.`,
+
+    `## 📈 Workflow Report
+    Ringkasan:
+    - Tracking commit + daily log sukses diupdate
+    - PR otomatis dibuat untuk menjaga dokumentasi
+    - Progress ini bisa dipakai sebagai referensi audit ke depannya.
+
+    🙏`
+    ];
+
 
   const emojis = ["🚀", "📊", "🔥", "✅", "⚡", "📝", "🔄", "📌"];
 

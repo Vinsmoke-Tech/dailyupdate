@@ -74,13 +74,9 @@ function mergeAndDeleteBranch() {
       execSync(`gh pr merge --merge --delete-branch --auto`, {
         stdio: "inherit",
       });
-      console.log(
-        "✅ Auto-merge berhasil diaktifkan. PR akan merge setelah semua syarat terpenuhi."
-      );
+      console.log("✅ Auto-merge berhasil diaktifkan.");
     } catch (err2) {
-      console.log(
-        "❌ Gagal mengaktifkan auto-merge. Periksa branch protection atau permissions."
-      );
+      console.log("❌ Gagal auto-merge. Cek branch protection.");
     }
   }
 }
@@ -102,69 +98,56 @@ function updateIssueTracking() {
   fs.writeFileSync(ISSUE_TRACKING_FILE, JSON.stringify(tracking, null, 2));
 }
 
-function createIssue() {
-  const tracking = JSON.parse(fs.readFileSync(ISSUE_TRACKING_FILE, "utf-8"));
-  const title = `Auto Issue #${tracking.count + 1} - ${new Date()
+function createAndCloseIssue() {
+  const issueTracking = JSON.parse(fs.readFileSync(ISSUE_TRACKING_FILE, "utf-8"));
+  const commitTracking = JSON.parse(fs.readFileSync(TRACKING_FILE, "utf-8"));
+
+  const title = `Auto Issue #${issueTracking.count + 1} - ${new Date()
     .toISOString()
     .split("T")[0]}`;
-  const body = `
-🤖 Bot Auto Issue
 
-- Waktu: ${new Date().toLocaleString("id-ID", {
+  const body = `
+🤖 **Bot Auto Issue Report**
+
+- 📅 Waktu: ${new Date().toLocaleString("id-ID", {
     timeZone: "Asia/Jakarta",
   })}
-- Issue ke-${tracking.count + 1}
-- Status: Generated automatically by bot
+- 🔢 Issue ke-${issueTracking.count + 1}
+- 📊 Total commit: ${commitTracking.count}
+- ⏱️ Last commit: ${commitTracking.last_commit}
+
+_Status: Generated automatically by bot_
 `;
 
   try {
-    execSync(`gh issue create --title "${title}" --body "${body}"`, {
-      stdio: "inherit",
-    });
-    console.log("✅ Issue berhasil dibuat");
+    // buat issue
+    const result = execSync(
+      `gh issue create --title "${title}" --body "${body}" --json number`,
+      { encoding: "utf-8" }
+    );
+    const created = JSON.parse(result);
+    console.log(`✅ Issue #${created.number} berhasil dibuat`);
+
+    // langsung close
+    execSync(`gh issue close ${created.number}`, { stdio: "inherit" });
+    console.log(`🛑 Issue #${created.number} langsung ditutup`);
   } catch (err) {
-    console.log("❌ Gagal membuat issue:", err.message);
-  }
-}
-
-// ---------------- Close Issue Bot ----------------
-function closeOldIssues(limit = 1) {
-  try {
-    const result = execSync(`gh issue list --state open --json number`, {
-      encoding: "utf-8",
-    });
-    const issues = JSON.parse(result);
-
-    if (issues.length === 0) {
-      console.log("ℹ️ Tidak ada issue open untuk ditutup.");
-      return;
-    }
-
-    const toClose = issues.slice(0, limit); // tutup sejumlah 'limit'
-    for (const issue of toClose) {
-      execSync(`gh issue close ${issue.number}`, { stdio: "inherit" });
-      console.log(`✅ Issue #${issue.number} berhasil ditutup`);
-    }
-  } catch (err) {
-    console.log("❌ Gagal menutup issue:", err.message);
+    console.log("❌ Gagal membuat/menutup issue:", err.message);
   }
 }
 
 // ---------------- Main Runner ----------------
 (async () => {
   // Commit & PR
-  initTracking();
-  updateTracking();
-  updateDailyLog();
-  await makeCommit();
-  createPullRequest();
-  mergeAndDeleteBranch();
+    initTracking();
+    updateTracking();
+    updateDailyLog();
+    await makeCommit();
+    createPullRequest();
+    mergeAndDeleteBranch();
 
-  // Auto Issue
-  initIssueTracking();
-  createIssue();
-  updateIssueTracking();
-
-  // Auto Close Issue (tutup 1 issue open tiap run)
-  closeOldIssues(1);
+    // Auto Issue (buat + auto close)
+    initIssueTracking();
+    createAndCloseIssue();
+    updateIssueTracking();
 })();

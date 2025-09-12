@@ -127,6 +127,29 @@ function createIssue() {
   }
 }
 
+// ---------------- Close Issue Bot ----------------
+function closeOldIssues(limit = 1) {
+  try {
+    const result = execSync(`gh issue list --state open --json number`, {
+      encoding: "utf-8",
+    });
+    const issues = JSON.parse(result);
+
+    if (issues.length === 0) {
+      console.log("ℹ️ Tidak ada issue open untuk ditutup.");
+      return;
+    }
+
+    const toClose = issues.slice(0, limit); // tutup sejumlah 'limit'
+    for (const issue of toClose) {
+      execSync(`gh issue close ${issue.number}`, { stdio: "inherit" });
+      console.log(`✅ Issue #${issue.number} berhasil ditutup`);
+    }
+  } catch (err) {
+    console.log("❌ Gagal menutup issue:", err.message);
+  }
+}
+
 // ---------------- Main Runner ----------------
 (async () => {
   // Commit & PR
@@ -141,4 +164,7 @@ function createIssue() {
   initIssueTracking();
   createIssue();
   updateIssueTracking();
+
+  // Auto Close Issue (tutup 1 issue open tiap run)
+  closeOldIssues(1);
 })();

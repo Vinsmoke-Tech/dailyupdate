@@ -229,8 +229,12 @@ function mergeAndDeleteBranch(pullRequest) {
   } catch (error) {
     if (error.authenticationFailed) throw error;
     console.log("⚠️ Merge manual gagal, coba auto-merge...");
-    run("gh", ["pr", "merge", pullRequest, "--merge", "--delete-branch", "--auto"]);
-    console.log("✅ Auto-merge diaktifkan");
+    try {
+      run("gh", ["pr", "merge", pullRequest, "--merge", "--delete-branch", "--auto"]);
+      console.log("✅ Auto-merge diaktifkan");
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
@@ -242,14 +246,14 @@ function createIssue(count) {
 }
 
 function closeOldIssues(limit = 1) {
-  const result = run("gh", ["issue", "list", "--state", "open", "--json", "number"], true);
-  const issues = JSON.parse(result);
-  const toClose = issues.slice(0, limit);
-  for (const issue of toClose) {
-    run("gh", ["issue", "close", String(issue.number)]);
-    console.log(`✅ Issue #${issue.number} ditutup`);
-  }
-  if (!issues.length) console.log("ℹ️ Tidak ada issue open untuk ditutup.");
+    const result = run("gh", ["issue", "list", "--state", "open", "--json", "number"], true);
+    const issues = JSON.parse(result);
+    const toClose = issues.slice(0, limit);
+    for (const issue of toClose) {
+      run("gh", ["issue", "close", String(issue.number)]);
+      console.log(`✅ Issue #${issue.number} ditutup`);
+    }
+    if (!issues.length) console.log("ℹ️ Tidak ada issue open untuk ditutup.");
 }
 
 // ---------------- Main Runner ----------------

@@ -1,9 +1,23 @@
 // daily_bot.js
 const fs = require("fs");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
-function run(cmd) {
-  execSync(cmd, { stdio: "inherit" });
+function run(command, args, capture = false) {
+  try {
+    const output = execFileSync(command, args, { encoding: "utf-8", stdio: "pipe" });
+    if (!capture) {
+      if (output) process.stdout.write(output);
+    }
+    return output;
+  } catch (cause) {
+    const details = `${cause.stderr || ""}\n${cause.stdout || ""}`;
+    const authenticationFailed = /401|bad credentials|unauthorized|gh auth login/i.test(details);
+    const error = new Error(authenticationFailed
+      ? "Autentikasi GitHub CLI gagal (401). Perbaiki autentikasi workflow sebelum menjalankan bot kembali."
+      : `Perintah ${command} ${args.slice(0, 2).join(" ")} gagal (exit ${cause.status ?? "unknown"}).`);
+    error.authenticationFailed = authenticationFailed;
+    throw error;
+  }
 }
 
 // ================== CONFIG ==================
@@ -173,85 +187,80 @@ function updateTracking(file, key) {
 
 // ---------------- Core Logic ----------------
 async function prepareBranch() {
-  run(`git checkout ${BASE_BRANCH}`);
-  run(`git pull origin ${BASE_BRANCH}`);
-  run(`git checkout -B ${BRANCH_NAME}`);
+  run("git", ["checkout", BASE_BRANCH]);
+  run("git", ["pull", "origin", BASE_BRANCH]);
+  run("git", ["checkout", "-B", BRANCH_NAME]);
 
   fs.appendFileSync(
     DAILY_FILE,
     `${new Date().toISOString()} - auto update\n`
   );
-  run(`git add ${DAILY_FILE}`);
-  try {
-    run(`git commit -m "${getRandomCommitMessage()}"`);
-  } catch {
-    console.log("ℹ️ Tidak ada perubahan baru untuk commit.");
-  }
-  run(`git push origin ${BRANCH_NAME} --force`);
+  run("git", ["add", DAILY_FILE]);
+  run("git", ["commit", "-m", getRandomCommitMessage()]);
+  run("git", ["push", "origin", BRANCH_NAME, "--force"]);
 }
 
 function createPullRequest() {
+  const existing = JSON.parse(run("gh", [
+    "pr", "list", "--state", "open", "--base", BASE_BRANCH,
+    "--head", BRANCH_NAME, "--json", "number", "--limit", "1"
+  ], true));
+  if (existing.length) {
+    console.log(`ℹ️ Menggunakan PR #${existing[0].number} yang sudah ada.`);
+    return String(existing[0].number);
+  }
   const title = getRandomPrTitle();
   const body = getRandomPrBody();
-  try {
-    run(
-      `gh pr create --base ${BASE_BRANCH} --head ${BRANCH_NAME} --title "${title}" --body "${body}"`
-    );
-    console.log(`✅ PR berhasil dibuat: ${title}`);
-  } catch {
-    console.log("ℹ️ PR mungkin sudah ada.");
+  const url = run("gh", [
+    "pr", "create", "--base", BASE_BRANCH, "--head", BRANCH_NAME,
+    "--title", title, "--body", body
+  ], true).trim();
+  if (!/^https:\/\/\S+\/pull\/\d+$/.test(url)) {
+    throw new Error("GitHub CLI tidak mengembalikan URL PR yang valid.");
   }
+  console.log(`✅ PR berhasil dibuat: ${title}`);
+  return url;
 }
 
-function mergeAndDeleteBranch() {
+function mergeAndDeleteBranch(pullRequest) {
   try {
-    run(`gh pr merge --merge --delete-branch`);
+    run("gh", ["pr", "merge", pullRequest, "--merge", "--delete-branch"]);
     console.log("✅ PR berhasil di-merge & branch dihapus");
-  } catch {
+  } catch (error) {
+    if (error.authenticationFailed) throw error;
     console.log("⚠️ Merge manual gagal, coba auto-merge...");
-    try {
-      run(`gh pr merge --merge --delete-branch --auto`);
-      console.log("✅ Auto-merge diaktifkan");
-    } catch {
-      console.log("❌ Auto-merge gagal (cek branch protection).");
-    }
+    run("gh", ["pr", "merge", pullRequest, "--merge", "--delete-branch", "--auto"]);
+    console.log("✅ Auto-merge diaktifkan");
   }
 }
 
 function createIssue(count) {
   const title = getRandomIssueTitle();
   const body = getRandomIssueBody(count);
-  try {
-    run(`gh issue create --title "${title}" --body "${body}"`);
-    console.log("✅ Issue berhasil dibuat");
-  } catch (err) {
-    console.log("❌ Gagal membuat issue:", err.message);
-  }
+  run("gh", ["issue", "create", "--title", title, "--body", body]);
+  console.log("✅ Issue berhasil dibuat");
 }
 
 function closeOldIssues(limit = 1) {
-  try {
-    const result = execSync(`gh issue list --state open --json number`, {
-      encoding: "utf-8"
-    });
-    const issues = JSON.parse(result);
-    const toClose = issues.slice(0, limit);
-    for (const issue of toClose) {
-      run(`gh issue close ${issue.number}`);
-      console.log(`✅ Issue #${issue.number} ditutup`);
-    }
-  } catch {
-    console.log("ℹ️ Tidak ada issue open untuk ditutup.");
+  const result = run("gh", ["issue", "list", "--state", "open", "--json", "number"], true);
+  const issues = JSON.parse(result);
+  const toClose = issues.slice(0, limit);
+  for (const issue of toClose) {
+    run("gh", ["issue", "close", String(issue.number)]);
+    console.log(`✅ Issue #${issue.number} ditutup`);
   }
+  if (!issues.length) console.log("ℹ️ Tidak ada issue open untuk ditutup.");
 }
 
 // ---------------- Main Runner ----------------
-(async () => {
+async function main() {
+  // Verify API authentication before changing files or pushing a branch.
+  run("gh", ["api", "graphql", "--raw-field", "query=query { viewer { login } }", "--silent"], true);
   // Commit + PR + Merge
   initTracking(TRACKING_FILE, { count: 0, last_commit: null });
   await prepareBranch();
-  createPullRequest();
-  mergeAndDeleteBranch();
+  const pullRequest = createPullRequest();
+  mergeAndDeleteBranch(pullRequest);
   updateTracking(TRACKING_FILE, "last_commit");
 
   // Issue create + close
@@ -259,4 +268,13 @@ function closeOldIssues(limit = 1) {
   const count = updateTracking(ISSUE_TRACKING_FILE, "last_issue");
   createIssue(count);
   closeOldIssues(1);
-})();
+}
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`❌ ${error.message}`);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { run, createPullRequest, mergeAndDeleteBranch, closeOldIssues, main };

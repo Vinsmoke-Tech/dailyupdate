@@ -63,13 +63,11 @@ jobs:
         git config --global user.name "Vinsmoke-Tech"
         git config --global user.email "daffahanaris@gmail.com"
 
-    - name: 🔑 Authenticate GitHub CLI
-      run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-        gh auth setup-git
-        gh auth status
-
-    - name: 🚀 Run Smart Commit Bot
-      run: node bot.js
+    - name: Verify GitHub API authentication
       env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        GH_TOKEN: ${{ github.token }}
+      run: gh api graphql --raw-field 'query=query { viewer { login } }' --silent
+    - name: Run Smart Commit Bot
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: node bot.js
